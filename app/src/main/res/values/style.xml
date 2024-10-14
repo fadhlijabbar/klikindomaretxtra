@@ -1,0 +1,16 @@
+<!-- res/values/styles.xml -->
+<resources>
+
+    <!-- Tema Aplikasi Utama -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Warna dan atribut lainnya -->
+        <item name="colorPrimary">#6200EE</item>
+        <item name="colorPrimaryVariant">#3700B3</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#03DAC6</item>
+        <item name="colorSecondaryVariant">#018786</item>
+        <item name="colorOnSecondary">#000000</item>
+        <!-- Tambahkan kustomisasi lainnya sesuai kebutuhan -->
+    </style>
+
+</resources>
