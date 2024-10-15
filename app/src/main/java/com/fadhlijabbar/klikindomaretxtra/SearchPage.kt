@@ -121,6 +121,21 @@ class SearchPage : AppCompatActivity() {
             false
         }
 
+        // Set TextWatcher untuk mencegah input "0"
+        productQuantity.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // Jika input adalah "0", ganti dengan "1"
+                if (s.toString() == "0") {
+                    productQuantity.setText("1")
+                    productQuantity.setSelection(1) // Set cursor di akhir
+                }
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
         // Menangani perubahan fokus untuk menonaktifkan pengeditan saat kehilangan fokus
         productQuantity.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
