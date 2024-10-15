@@ -1,5 +1,9 @@
 package com.fadhlijabbar.klikindomaretxtra
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.Editable
@@ -12,8 +16,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.core.view.WindowInsetsCompat
 import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import com.fadhlijabbar.klikindomaretxtra.databinding.ActivitySearchPageBinding
 
 class SearchPage : AppCompatActivity() {
@@ -84,10 +90,22 @@ class SearchPage : AppCompatActivity() {
                     if (quantity > 1) {
                         quantity--
                         productQuantity.setText(quantity.toString())
+                        animateQuantityChange(productQuantity) // Panggil animasi untuk EditText
+                    } else {
+                        // Tampilkan dialog konfirmasi jika quantity adalah 1
+                        showConfirmationDialog { confirmed ->
+                            if (confirmed as Boolean) {
+                                productQuantity.visibility = View.GONE
+                                addButton.visibility = View.VISIBLE
+                            }
+                        }
                     }
 
                     // Sembunyikan keyboard dan kursor setelah mengklik ic_remove
                     hideKeyboardAndCursor(productQuantity)
+
+                    // Animasi pada drawableStart
+                    animateDrawable(drawableStart)
                     return@setOnTouchListener true
                 }
 
@@ -97,9 +115,13 @@ class SearchPage : AppCompatActivity() {
                     var quantity = productQuantity.text.toString().toIntOrNull() ?: 1
                     quantity++
                     productQuantity.setText(quantity.toString())
+                    animateQuantityChange(productQuantity) // Panggil animasi untuk EditText
 
                     // Sembunyikan keyboard dan kursor setelah mengklik ic_plus
                     hideKeyboardAndCursor(productQuantity)
+
+                    // Animasi pada drawableEnd
+                    animateDrawable(drawableEnd)
                     return@setOnTouchListener true
                 }
 
@@ -121,19 +143,19 @@ class SearchPage : AppCompatActivity() {
             false
         }
 
-        // Set TextWatcher untuk mencegah input "0"
+        // Mengatur TextWatcher untuk mencegah memasukkan nilai 0
         productQuantity.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                // Jika input adalah "0", ganti dengan "1"
-                if (s.toString() == "0") {
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                val quantity = s.toString().toIntOrNull() ?: 1
+                if (quantity < 1) {
                     productQuantity.setText("1")
-                    productQuantity.setSelection(1) // Set cursor di akhir
+                    productQuantity.setSelection(productQuantity.text.length) // Memastikan kursor berada di akhir
                 }
             }
-
-            override fun afterTextChanged(s: Editable?) {}
         })
 
         // Menangani perubahan fokus untuk menonaktifkan pengeditan saat kehilangan fokus
@@ -143,6 +165,7 @@ class SearchPage : AppCompatActivity() {
             }
         }
     }
+
 
     // Fungsi untuk menyembunyikan keyboard dan cursor
     private fun hideKeyboardAndCursor(editText: EditText) {
@@ -156,6 +179,42 @@ class SearchPage : AppCompatActivity() {
     }
 
 
+    private fun showConfirmationDialog(onConfirm: (Boolean) -> Unit) {
+        val builder = AlertDialog.Builder(this)
+        builder.setMessage("Apakah yakin untuk menghapus produk?")
+            .setPositiveButton("Ya") { _, _ -> onConfirm(true) }
+            .setNegativeButton("Tidak") { dialog, _ ->
+                dialog.dismiss()
+                onConfirm(false)
+            }
+            .create()
+            .show()
+    }
+
+
+
+    private fun animateDrawable(drawable: Drawable) {
+        val animator = ValueAnimator.ofFloat(0.5f, 1f)
+        animator.duration = 100
+        animator.addUpdateListener { animation ->
+            val alpha = (animation.animatedValue as Float * 255).toInt()
+            drawable.alpha = alpha // Mengatur alpha dari drawable
+            drawable.invalidateSelf() // Meminta redraw dari drawable
+        }
+        animator.start()
+    }
+
+    // Fungsi untuk mengatur animasi pada angka di EditText
+    private fun animateQuantityChange(editText: EditText) {
+        val scaleX = ObjectAnimator.ofFloat(editText, "scaleX", 1.2f, 1.0f)
+        val scaleY = ObjectAnimator.ofFloat(editText, "scaleY", 1.2f, 1.0f)
+        scaleX.duration = 150
+        scaleY.duration = 150
+
+        val animatorSet = AnimatorSet()
+        animatorSet.play(scaleX).with(scaleY)
+        animatorSet.start()
+    }
 
 
 

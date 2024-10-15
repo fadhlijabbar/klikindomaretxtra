@@ -112,7 +112,11 @@
                             android:clickable="false"
                             android:focusableInTouchMode="false"
                             android:cursorVisible="false"
-                            android:inputType="number"/>
+                            android:inputType="number"
+                            android:textCursorDrawable="@drawable/custom_cursor"
+                            android:textSelectHandle="@drawable/cutom_handle"
+                            android:textSelectHandleLeft="@drawable/cutom_handle"
+                            android:textSelectHandleRight="@drawable/cutom_handle"/>
 
                         <Button
                             android:id="@+id/add_button"
