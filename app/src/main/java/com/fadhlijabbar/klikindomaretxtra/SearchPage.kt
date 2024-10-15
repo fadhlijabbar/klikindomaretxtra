@@ -4,13 +4,16 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.MotionEvent
+import android.view.inputmethod.InputMethodManager
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import android.view.View
 import androidx.core.view.WindowInsetsCompat
+import android.widget.EditText
 import com.fadhlijabbar.klikindomaretxtra.databinding.ActivitySearchPageBinding
 
 class SearchPage : AppCompatActivity() {
@@ -33,7 +36,113 @@ class SearchPage : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        // Menangani tampilan product_quantity dan add_button
+        handleProductQuantity()
     }
+
+    private fun handleProductQuantity() {
+        // Inisialisasi views untuk kuantitas dan tombol tambah
+        val productQuantity = binding.productQuantity
+        val addButton = binding.addButton
+
+        // Menyembunyikan EditText product_quantity secara default
+        productQuantity.visibility = View.GONE
+
+        // Tampilkan product_quantity dan sembunyikan add_button saat add_button diklik
+        addButton.setOnClickListener {
+            productQuantity.visibility = View.VISIBLE
+            addButton.visibility = View.GONE
+
+            // Set focus dan kursor menjadi tidak terlihat di awal
+            productQuantity.isFocusable = false
+            productQuantity.isFocusableInTouchMode = false
+            productQuantity.isCursorVisible = false
+        }
+
+        // Set touch listener untuk menangani klik pada angka dan ikon
+        productQuantity.setOnTouchListener { _, event ->
+            val DRAWABLE_LEFT = 0
+            val DRAWABLE_RIGHT = 2
+
+            if (event.action == MotionEvent.ACTION_UP) {
+                val drawableStart: Drawable? = productQuantity.compoundDrawables[DRAWABLE_LEFT]
+                val drawableEnd: Drawable? = productQuantity.compoundDrawables[DRAWABLE_RIGHT]
+
+                val drawableStartWidth = drawableStart?.bounds?.width() ?: 0
+                val drawableEndWidth = drawableEnd?.bounds?.width() ?: 0
+
+                val paddingStart = productQuantity.paddingStart
+                val paddingEnd = productQuantity.paddingEnd
+
+                val width = productQuantity.width
+
+                // Deteksi klik pada drawable start (ic_remove)
+                if (drawableStart != null && event.x <= (drawableStartWidth + paddingStart)) {
+                    Log.d("ProductQuantity", "Clicked on ic_remove")
+                    var quantity = productQuantity.text.toString().toIntOrNull() ?: 1
+                    if (quantity > 1) {
+                        quantity--
+                        productQuantity.setText(quantity.toString())
+                    }
+
+                    // Sembunyikan keyboard dan kursor setelah mengklik ic_remove
+                    hideKeyboardAndCursor(productQuantity)
+                    return@setOnTouchListener true
+                }
+
+                // Deteksi klik pada drawable end (ic_plus)
+                if (drawableEnd != null && event.x >= (width - drawableEndWidth - paddingEnd)) {
+                    Log.d("ProductQuantity", "Clicked on ic_plus")
+                    var quantity = productQuantity.text.toString().toIntOrNull() ?: 1
+                    quantity++
+                    productQuantity.setText(quantity.toString())
+
+                    // Sembunyikan keyboard dan kursor setelah mengklik ic_plus
+                    hideKeyboardAndCursor(productQuantity)
+                    return@setOnTouchListener true
+                }
+
+                // Jika klik terjadi di area angka, tampilkan kursor dan keyboard
+                val totalWidth = width - drawableStartWidth - drawableEndWidth - paddingStart - paddingEnd
+                if (event.x > drawableStartWidth + paddingStart && event.x < totalWidth + drawableStartWidth + paddingStart) {
+                    // Tampilkan kursor dan keyboard
+                    productQuantity.isCursorVisible = true
+                    productQuantity.isFocusable = true
+                    productQuantity.isFocusableInTouchMode = true
+                    productQuantity.requestFocus()
+
+                    // Tampilkan keyboard
+                    val inputMethodManager = getSystemService(InputMethodManager::class.java)
+                    inputMethodManager.showSoftInput(productQuantity, InputMethodManager.SHOW_IMPLICIT)
+                    return@setOnTouchListener true
+                }
+            }
+            false
+        }
+
+        // Menangani perubahan fokus untuk menonaktifkan pengeditan saat kehilangan fokus
+        productQuantity.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                hideKeyboardAndCursor(productQuantity)
+            }
+        }
+    }
+
+    // Fungsi untuk menyembunyikan keyboard dan cursor
+    private fun hideKeyboardAndCursor(editText: EditText) {
+        editText.isCursorVisible = false
+        editText.isFocusable = false
+        editText.isFocusableInTouchMode = false
+
+        // Sembunyikan keyboard
+        val inputMethodManager = getSystemService(InputMethodManager::class.java)
+        inputMethodManager.hideSoftInputFromWindow(editText.windowToken, 0)
+    }
+
+
+
+
 
     private fun setupSearchBar() {
         val editTextSearch = binding.customSearchBar.editTextSearch
