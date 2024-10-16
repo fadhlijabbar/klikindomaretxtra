@@ -11,5 +11,6 @@
     <color name="primarylight">#FFEFF3F6</color>
     <color name="grayprimary">#FF666666</color>
     <color name="yellow">#FFF29901</color>
+    <color name="lightyellow">#FFF9CA24</color>
     <color name="grayborder">#FFDDDEE2</color>
 </resources>
