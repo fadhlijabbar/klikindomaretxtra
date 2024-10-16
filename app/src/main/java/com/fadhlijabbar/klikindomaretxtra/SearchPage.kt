@@ -3,12 +3,12 @@ package com.fadhlijabbar.klikindomaretxtra
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
-import android.graphics.Color
+import java.text.NumberFormat
+import java.util.Locale
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.MotionEvent
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.enableEdgeToEdge
@@ -16,9 +16,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import android.view.View
-import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.core.view.WindowInsetsCompat
 import android.widget.EditText
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import com.fadhlijabbar.klikindomaretxtra.databinding.ActivitySearchPageBinding
 
@@ -48,22 +48,58 @@ class SearchPage : AppCompatActivity() {
     }
 
     private fun handleProductQuantity() {
-        // Inisialisasi views untuk kuantitas dan tombol tambah
+        // Inisialisasi views untuk kuantitas, tombol tambah, dan cart_button
         val productQuantity = binding.productQuantity
         val addButton = binding.addButton
 
-        // Menyembunyikan EditText product_quantity secara default
-        productQuantity.visibility = View.GONE
+        // Akses cart_button dari layout yang di-include
+        val cartButtonLayout = binding.cartButton // Ini referensi ke include layout
+        val cartItemText = cartButtonLayout.root.findViewById<TextView>(R.id.item_count)
+        val cartPriceText = cartButtonLayout.root.findViewById<TextView>(R.id.total_price)
 
-        // Tampilkan product_quantity dan sembunyikan add_button saat add_button diklik
+        // Menyembunyikan EditText product_quantity dan cart_button secara default
+        productQuantity.visibility = View.GONE
+        cartButtonLayout.root.visibility = View.GONE // Mengakses root dari layout yang di-include
+
+        // Tampilkan product_quantity dan cart_button, sembunyikan add_button saat add_button diklik
         addButton.setOnClickListener {
             productQuantity.visibility = View.VISIBLE
+
+            // Set alpha dan translationY untuk animasi
+            cartButtonLayout.root.alpha = 0f // Set alpha awal ke 0
+            cartButtonLayout.root.translationY = -cartButtonLayout.root.height.toFloat() // Pindahkan ke atas
+            cartButtonLayout.root.visibility = View.VISIBLE // Tampilkan cart_button
+
+            // Animasi muncul cart_button dengan efek fade in dan bounce
+            cartButtonLayout.root.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(300)
+                .withEndAction {
+                    // Animasi bounce ke atas dan bawah setelah fade in selesai
+                    cartButtonLayout.root.animate()
+                        .translationY(-10f) // Bergerak ke atas
+                        .setDuration(100)
+                        .withEndAction {
+                            cartButtonLayout.root.animate()
+                                .translationY(0f) // Kembali ke posisi awal
+                                .setDuration(100)
+                                .start()
+                        }
+                }
+
             addButton.visibility = View.GONE
 
             // Set focus dan kursor menjadi tidak terlihat di awal
             productQuantity.isFocusable = false
             productQuantity.isFocusableInTouchMode = false
             productQuantity.isCursorVisible = false
+
+            // Set quantity pertama ke 1 dan harga total ke Rp 3.100
+            val initialQuantity = 1
+            productQuantity.setText(initialQuantity.toString())
+            cartItemText.text = "$initialQuantity item"
+            cartPriceText.text = formatRupiah(initialQuantity * 3100) // Format harga ke Rp 3.100
         }
 
         // Set touch listener untuk menangani klik pada angka dan ikon
@@ -85,42 +121,51 @@ class SearchPage : AppCompatActivity() {
 
                 // Deteksi klik pada drawable start (ic_remove)
                 if (drawableStart != null && event.x <= (drawableStartWidth + paddingStart)) {
-                    Log.d("ProductQuantity", "Clicked on ic_remove")
                     var quantity = productQuantity.text.toString().toIntOrNull() ?: 1
                     if (quantity > 1) {
                         quantity--
                         productQuantity.setText(quantity.toString())
-                        animateQuantityChange(productQuantity) // Panggil animasi untuk EditText
+                        animateQuantityChange(productQuantity) // Animasi perubahan angka
+
+                        // Update cart_button dengan quantity yang baru
+                        cartItemText.text = "$quantity item"
+                        cartPriceText.text = formatRupiah(quantity * 3100)
                     } else {
                         // Tampilkan dialog konfirmasi jika quantity adalah 1
                         showConfirmationDialog { confirmed ->
                             if (confirmed as Boolean) {
                                 productQuantity.visibility = View.GONE
-                                addButton.visibility = View.VISIBLE
+
+                                // Animasi hilang cart_button dengan fade out
+                                cartButtonLayout.root.animate()
+                                    .alpha(0f)
+                                    .translationY(-cartButtonLayout.root.height.toFloat())
+                                    .setDuration(300)
+                                    .withEndAction {
+                                        cartButtonLayout.root.visibility = View.GONE
+                                        addButton.visibility = View.VISIBLE
+                                    }
                             }
                         }
                     }
 
-                    // Sembunyikan keyboard dan kursor setelah mengklik ic_remove
                     hideKeyboardAndCursor(productQuantity)
-
-                    // Animasi pada drawableStart
                     animateDrawable(drawableStart)
                     return@setOnTouchListener true
                 }
 
                 // Deteksi klik pada drawable end (ic_plus)
                 if (drawableEnd != null && event.x >= (width - drawableEndWidth - paddingEnd)) {
-                    Log.d("ProductQuantity", "Clicked on ic_plus")
                     var quantity = productQuantity.text.toString().toIntOrNull() ?: 1
                     quantity++
                     productQuantity.setText(quantity.toString())
-                    animateQuantityChange(productQuantity) // Panggil animasi untuk EditText
+                    animateQuantityChange(productQuantity) // Animasi perubahan angka
 
-                    // Sembunyikan keyboard dan kursor setelah mengklik ic_plus
+                    // Update cart_button dengan quantity yang baru
+                    cartItemText.text = "$quantity item"
+                    cartPriceText.text = formatRupiah(quantity * 3100)
+
                     hideKeyboardAndCursor(productQuantity)
-
-                    // Animasi pada drawableEnd
                     animateDrawable(drawableEnd)
                     return@setOnTouchListener true
                 }
@@ -128,13 +173,11 @@ class SearchPage : AppCompatActivity() {
                 // Jika klik terjadi di area angka, tampilkan kursor dan keyboard
                 val totalWidth = width - drawableStartWidth - drawableEndWidth - paddingStart - paddingEnd
                 if (event.x > drawableStartWidth + paddingStart && event.x < totalWidth + drawableStartWidth + paddingStart) {
-                    // Tampilkan kursor dan keyboard
                     productQuantity.isCursorVisible = true
                     productQuantity.isFocusable = true
                     productQuantity.isFocusableInTouchMode = true
                     productQuantity.requestFocus()
 
-                    // Tampilkan keyboard
                     val inputMethodManager = getSystemService(InputMethodManager::class.java)
                     inputMethodManager.showSoftInput(productQuantity, InputMethodManager.SHOW_IMPLICIT)
                     return@setOnTouchListener true
@@ -142,21 +185,6 @@ class SearchPage : AppCompatActivity() {
             }
             false
         }
-
-        // Mengatur TextWatcher untuk mencegah memasukkan nilai 0
-        productQuantity.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-
-            override fun afterTextChanged(s: Editable?) {
-                val quantity = s.toString().toIntOrNull() ?: 1
-                if (quantity < 1) {
-                    productQuantity.setText("1")
-                    productQuantity.setSelection(productQuantity.text.length) // Memastikan kursor berada di akhir
-                }
-            }
-        })
 
         // Menangani perubahan fokus untuk menonaktifkan pengeditan saat kehilangan fokus
         productQuantity.setOnFocusChangeListener { _, hasFocus ->
@@ -166,6 +194,14 @@ class SearchPage : AppCompatActivity() {
         }
     }
 
+
+    // Fungsi untuk memformat angka ke format Rupiah dengan spasi
+    private fun formatRupiah(amount: Int): String {
+        val format = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
+        format.maximumFractionDigits = 0 // Menghilangkan desimal
+        val formattedAmount = format.format(amount).replace("Rp", "Rp ") // Menambahkan spasi setelah "Rp"
+        return formattedAmount
+    }
 
     // Fungsi untuk menyembunyikan keyboard dan cursor
     private fun hideKeyboardAndCursor(editText: EditText) {
